@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "video-analytics-demo.fullname" . }}
+  labels:
+{{ include "video-analytics-demo.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: "{{ .Chart.Name }}-1"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+          - sh
+          - -c
+          {{- if .Values.ngcModel }}
+          - apt update; 
+            apt install wget unzip -y; 
+            {{ .Values.ngcModel.getModel }}; 
+            unzip *.zip; 
+            cp -r {{ .Values.ngcModel.fileName }} {{ .Values.ngcModel.putModel }}; 
+            sed -ie "s/..\/..\/models\/tlt_pretrained_models\/{{ .Values.ngcModel.name}}\/{{ .Values.ngcModel.fileName }}/\/opt\/nvidia\/deepstream\/deepstream-5.0\/samples\/configs\/tlt_pretrained_models\/{{ .Values.ngcModel.fileName }}/g" {{ .Values.ngcModel.modelConfig }}; 
+            {{ .Values.command.apprunnercmd}} {{ .Values.command.apprunnername}} {{ .Values.command.appname}} {{ .Values.command.apparg}} >> /home/deepstream.log
+          {{- else }}
+          - {{ .Values.command.apprunnercmd}} {{ .Values.command.apprunnername}} {{ .Values.command.appname}} {{ .Values.command.apparg}}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          ports: 
+            - name: http
+              containerPort: 8554
+              protocol: TCP
+            - name: http1
+              containerPort: {{ .Values.service.webuiPort }}
+              protocol: TCP
+          volumeMounts:
+            - name: ipmount
+              mountPath: /etc/config
+            - name: create-config
+              mountPath: /opt/nvidia/deepstream/create_config.py
+              subPath: create_config.py
+            - name: logs-mount
+              mountPath: /home
+        - name: "{{ .Chart.Name }}-azure"
+          image: anguda/azure-iot:send-message
+          env:
+            - name: IOTHUB_DEVICE_CONNECTION_STRING
+              value: {{ .Values.iotdeviceconnectionstring }}
+          volumeMounts:
+            - name: logs-mount
+              mountPath: /home
+      volumes:
+        - name: ipmount
+          configMap:
+            name: {{ include "video-analytics-demo.fullname" . }}-configmap
+        - name: logs-mount
+          emptyDir: {}
+        - name: create-config
+          configMap:
+            name: {{ include "video-analytics-demo.fullname" . }}-create-config
+{{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "video-analytics-demo.fullname" . }}-webui
+  labels:
+    name: {{ include "video-analytics-demo.fullname" . }}-webui      
+{{ include "video-analytics-demo.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      name: {{ include "video-analytics-demo.fullname" . }}-webui
+      app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        name: {{ include "video-analytics-demo.fullname" . }}-webui
+        app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: "{{ .Chart.Name }}-webui-1"
+          image: {{ .Values.image.webui }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: NODE_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: DS_PORT
+            value: "{{ .Values.service.nodePort }}"
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 45; bash /tmp/serverstart.sh; cp -r /tmp/play.html /usr/local/antmedia/webapps/WebRTCApp/play.html"]
+          resources: {}
+          volumeMounts:
+          - mountPath: /tmp/play.html
+            name: play
+            subPath: play.html
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.webuiPort }}
+              protocol: TCP
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: {{ include "video-analytics-demo.fullname" . }}-webui-configmap
+        name: play
+

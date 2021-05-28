@@ -1,0 +1,5 @@
+azure-iot-device
+azure-iot-hub
+azure-eventhub
+asyncio
+sh
