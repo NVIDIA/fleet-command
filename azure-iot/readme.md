@@ -3,7 +3,7 @@
 
 This repository provides the two main methods of integrating Fleet Command with Azure IoT Edge:
 
-- [Applications integrated with Azure IoT](#(Video-Analytics-Demo-with-Azure-IoT-Integration)
+- [Applications integrated with Azure IoT](#Video-Analytics-Demo-with-Azure-IoT-Integration)
 - [Azure IoT Runtime](#Azure-IoT-Runtime)
 
 
