@@ -1,19 +1,28 @@
-# Video Analytics Demo with Azure IoT Integration
+
+# Fleet Command Integration with Azure IoT
+
+This repository provides the two main methods of integrating Fleet Command with Azure IoT Edge:
+
+- [Applications integrated with Azure IoT](#(Video-Analytics-Demo-with-Azure-IoT-Integration)
+- [Azure IoT Runtime](#Azure-IoT-Runtime)
+
+
+## Video Analytics Demo with Azure IoT Integration
 
 This repository helps you to test Deepstream Sample Application with Azure IoT on Fleet Command Edge Node. 
 
-## Prerequisites 
+### Prerequisites 
 - Access to Azure Account with an access to create Azure IoT Hub resources.
   - [Azure IoT Hub Event Connection String](https://devblogs.microsoft.com/iotdev/understand-different-connection-strings-in-azure-iot-hub/#eventhubconn)
   - [Azure IoT Device Connection String](https://devblogs.microsoft.com/iotdev/understand-different-connection-strings-in-azure-iot-hub/#iothubdeviceconn)
 
-## Azure IoT Preparation
+### Azure IoT Preparation
 
 Create an Azure IoT resources, for more information please refer [Azure IoT Preparation](https://docs.google.com/document/d/1BZhJJr4oGKi2gVF4aAKY4I_nF-P3ParB-hxaH7pRIDE/edit#heading=h.dl1a8tw0t31x)
 
 `NOTE:` Here Primary Connection string means Azure IoT Device Connection String
 
-## Sample Application Preparation
+### Sample Application Preparation
 
 Deepstream Intelligent Video Analytics Demo helm chart running Azure IoT as a sidecar and sending the Deepstream logs as a telemetry data to Azure IoT Hub. 
 
@@ -24,11 +33,11 @@ iotdevice-connection-string: "HostName=egx-iot.azure-devices.net;DeviceId=egx-io
 
 ```
 
-## Deploy on Fleet Command
+### Deploy on Fleet Command
 
-Please go through [Deploy to the Edge](https://docs.google.com/document/d/1ahm2WdTg0Z7T5to8HdXZho_gnyheGIDtxBB-QSEJHN8/edit#heading=h.mhpzm8t8vdmp) steps to deploy the Azure IoT Application on Fleet Command Edge Node using Fleet Command.
+Please go through [Deploy to the Edge](https://docs.nvidia.com/fleet-command/prod_fleet-command/prod_fleet-command/ug-deploying-to-the-edge.html) steps to deploy the Azure IoT Application on Fleet Command Edge Node using Fleet Command.
 
-## Read the Azure IoT Telemetry Data
+### Read the Azure IoT Telemetry Data
 
 ### Prerequisites
 - Python3.7
@@ -53,7 +62,7 @@ Run the below command to read the telemetry of Azure IoT Hub
 python3 read.py
 ```
 
-# Azure IoT Runtime 
+## Azure IoT Runtime 
 
 Deploy Azure IoT Runtime Helm Chart to connect Azure IoT
 
