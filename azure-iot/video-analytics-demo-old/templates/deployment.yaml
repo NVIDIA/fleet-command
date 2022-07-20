@@ -6,8 +6,6 @@ metadata:
 {{ include "video-analytics-demo.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  strategy:
-    type: {{ .Values.deployment.strategy }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
@@ -32,26 +30,12 @@ spec:
           - -c
           {{- if .Values.ngcModel }}
           - apt update; 
-            apt install wget unzip git-svn -y; 
-            git svn clone https://github.com/NVIDIA-AI-IOT/deepstream_reference_apps/trunk/deepstream_app_tao_configs >/dev/null;
-            cp deepstream_app_tao_configs/* /opt/nvidia/deepstream/deepstream-6.0/samples/configs/tao_pretrained_models/;
-            rm -rf deepstream_app_tao_configs/; 
-            wget -qO ngccli_linux.zip https://ngc.nvidia.com/downloads/ngccli_linux.zip && unzip -o ngccli_linux.zip && chmod u+x ngc-cli/ngc;
-            cp ngc-cli/ngc /usr/bin/;
-            {{- if .Values.ngcConfig }}
-            export NGC_CLI_API_KEY={{ .Values.ngcConfig.apikey }} && ngc config set --format_type=ascii --org={{ .Values.ngcConfig.ngcorg }} --team={{ .Values.ngcConfig.ngcteam }};
-            {{- else }}
-            echo "No NGC Configuration Provided";
-            {{- end }}
-            {{ .Values.ngcModel.getModel }};
-            ngc config clear;
-            model_version=$(echo '{{ .Values.ngcModel.getModel }}' | awk -F':' '{print $NF}' | sed 's/"//g');
-            model_name=$(echo '{{ .Values.ngcModel.getModel }}' | awk -F':' '{print $1}' |  awk -F'/' '{print $NF}');
-            model_dir_name="$model_name"_v"$model_version";
-            echo $model_dir_name;
-            cp -r $model_dir_name/{{ .Values.ngcModel.fileName }} {{ .Values.ngcModel.putModel }};
-            sed -ie "s/..\/..\/models\/tao_pretrained_models\/{{ .Values.ngcModel.name}}\/{{ .Values.ngcModel.fileName }}/\/opt\/nvidia\/deepstream\/deepstream-6.1\/samples\/configs\/tao_pretrained_models\/{{ .Values.ngcModel.fileName }}/g" {{ .Values.ngcModel.putModel }}/{{ .Values.ngcModel.modelConfig }};
-            {{ .Values.command.apprunnercmd}} {{ .Values.command.apprunnername}} {{ .Values.command.appname}} {{ .Values.command.apparg}}
+            apt install wget unzip -y; 
+            {{ .Values.ngcModel.getModel }}; 
+            unzip *.zip; 
+            cp -r {{ .Values.ngcModel.fileName }} {{ .Values.ngcModel.putModel }}; 
+            sed -ie "s/..\/..\/models\/tlt_pretrained_models\/{{ .Values.ngcModel.name}}\/{{ .Values.ngcModel.fileName }}/\/opt\/nvidia\/deepstream\/deepstream-5.0\/samples\/configs\/tlt_pretrained_models\/{{ .Values.ngcModel.fileName }}/g" {{ .Values.ngcModel.modelConfig }}; 
+            {{ .Values.command.apprunnercmd}} {{ .Values.command.apprunnername}} {{ .Values.command.appname}} {{ .Values.command.apparg}} >> /home/deepstream.log
           {{- else }}
           - {{ .Values.command.apprunnercmd}} {{ .Values.command.apprunnername}} {{ .Values.command.appname}} {{ .Values.command.apparg}}
           {{- end }}
@@ -68,9 +52,6 @@ spec:
           volumeMounts:
             - name: ipmount
               mountPath: /etc/config
-            - name: create-config-a100
-              mountPath: /opt/nvidia/deepstream/create_config_a100.py
-              subPath: create_config_a100.py
             - name: create-config
               mountPath: /opt/nvidia/deepstream/create_config.py
               subPath: create_config.py
@@ -85,17 +66,14 @@ spec:
             - name: logs-mount
               mountPath: /home
       volumes:
-        - name: logs-mount
-          emptyDir: {}
         - name: ipmount
           configMap:
             name: {{ include "video-analytics-demo.fullname" . }}-configmap
+        - name: logs-mount
+          emptyDir: {}
         - name: create-config
           configMap:
             name: {{ include "video-analytics-demo.fullname" . }}-create-config
-        - name: create-config-a100
-          configMap:
-            name: {{ include "video-analytics-demo.fullname" . }}-create-config-a100
 {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -131,33 +109,16 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       containers:
-        - name: nginx
-          image: nginx
-          ports:
-          - containerPort: 80
-            name: http
-          volumeMounts:
-            - name: nginx-conf
-              mountPath: /etc/nginx/nginx.conf
-              subPath: nginx.conf
-              readOnly: true
         - name: "{{ .Chart.Name }}-webui-1"
           image: {{ .Values.image.webui }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-          {{- if .Values.service.rtspnodePort }}
           - name: NODE_IP
             valueFrom:
               fieldRef:
                 fieldPath: status.hostIP
           - name: DS_PORT
-            value: "{{ .Values.service.rtspnodePort }}"
-          {{- else }}
-          - name: NODE_IP
-            value: {{ include "video-analytics-demo.fullname" . }}
-          - name: DS_PORT
-            value: "{{ .Values.service.port }}"
-          {{- end }}  
+            value: "{{ .Values.service.nodePort }}"
           lifecycle:
             postStart:
               exec:
@@ -168,7 +129,7 @@ spec:
             name: play
             subPath: play.html
           ports:
-            - name: webui
+            - name: http
               containerPort: {{ .Values.service.webuiPort }}
               protocol: TCP
       volumes:
@@ -176,9 +137,4 @@ spec:
           defaultMode: 420
           name: {{ include "video-analytics-demo.fullname" . }}-webui-configmap
         name: play
-      - name: nginx-conf
-        configMap:
-          name: {{ include "video-analytics-demo.fullname" . }}-nginx-config
-          items:
-            - key: nginx.conf
-              path: nginx.conf
+

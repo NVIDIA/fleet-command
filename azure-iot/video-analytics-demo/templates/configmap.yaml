@@ -14,6 +14,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "video-analytics-demo.fullname" . }}-webui-configmap
+  labels:
+    app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 data:
 {{ (.Files.Glob "config/play.html").AsConfig | indent 4 }}
 ---
@@ -21,5 +24,91 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "video-analytics-demo.fullname" . }}-create-config
+  labels:
+    app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 data:
+{{ if contains "5.0-20.08-devel-a100"  .Values.image.tag }}
+{{ (.Files.Glob "config/create_config_a100.py").AsConfig | indent 4 }}
+{{ else }}
 {{ (.Files.Glob "config/create_config.py").AsConfig | indent 4 }}
+{{ end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "video-analytics-demo.fullname" . }}-create-config-a100
+  labels:
+    app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+{{ (.Files.Glob "config/create_config_a100.py").AsConfig | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "video-analytics-demo.fullname" . }}-nginx-config
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes  1;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      sendfile on;
+      tcp_nopush on;
+      tcp_nodelay on;
+      keepalive_timeout 65;
+      types_hash_max_size 2048;
+      include /etc/nginx/mime.types;
+      fastcgi_buffers 8 16k;
+      fastcgi_buffer_size 32k;
+
+      client_max_body_size 24M;
+      client_body_buffer_size 128k;
+
+      client_header_buffer_size 5120k;
+      large_client_header_buffers 16 5120k;
+      server {
+          listen       80 default_server;
+          server_name  localhost;
+          root /var/www/html;
+          location / {
+            rewrite ^ $scheme://$http_host/demo/play.html?name=videoanalytics break;
+            #return 301 $uri/demo/play.html?name=videoanalytics;
+            #proxy_pass http://$server_name:80/demo/play.html?name=videoanalytics;
+            proxy_buffering off;
+            proxy_cache_bypass $http_upgrade;
+            proxy_buffers 4 256k;
+            proxy_buffer_size 128k;
+            proxy_busy_buffers_size 256k;
+            proxy_connect_timeout 4s;
+            proxy_read_timeout 86400s;
+            proxy_send_timeout 12s;
+            proxy_http_version 1.1;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          }
+          location /demo {
+            proxy_pass http://{{ include "video-analytics-demo.fullname" . }}-web:5080/WebRTCApp;
+            proxy_buffering off;
+            proxy_cache_bypass $http_upgrade;
+            proxy_buffers 4 256k;
+            proxy_buffer_size 128k;
+            proxy_busy_buffers_size 256k;
+            proxy_connect_timeout 4s;
+            proxy_read_timeout 86400s;
+            proxy_send_timeout 12s;
+            proxy_http_version 1.1;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          } 
+        }
+      }

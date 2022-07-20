@@ -5,17 +5,13 @@ metadata:
   labels:
 {{ include "video-analytics-demo.labels" . | indent 4 }}
 spec:
-  {{- if .Values.service.rtspnodePort }}
   type: {{ .Values.service.type }}
-  {{- end }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: http
       protocol: TCP
       name: http
-      {{- if .Values.service.rtspnodePort }}
-      nodePort: {{ .Values.service.rtspnodePort }}
-      {{- end }}
+      nodePort: {{ .Values.service.nodePort }}
   selector:
     app.kubernetes.io/name: {{ include "video-analytics-demo.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -29,26 +25,10 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: 80
-      name: http
+    - port: {{ .Values.service.webuiPort }}
+      targetPort: http
       protocol: TCP
-      targetPort: 80
+      name: http
       nodePort: {{ .Values.service.webuinodePort }}
   selector:
     name: {{ include "video-analytics-demo.fullname" . }}-webui
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "video-analytics-demo.fullname" . }}-web
-  labels:
-    name: {{ include "video-analytics-demo.fullname" . }}-webui
-spec:
-  ports:
-    - port: {{ .Values.service.webuiPort }}
-      name: webui
-      protocol: TCP
-      targetPort: webui
-  selector:
-    name: {{ include "video-analytics-demo.fullname" . }}-webui
-

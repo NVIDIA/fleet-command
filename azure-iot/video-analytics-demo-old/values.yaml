@@ -8,26 +8,22 @@ replicaCount: 1
 
 image:
   repository: nvcr.io/nvidia/deepstream
-  tag: 6.1-samples
+  tag: 5.0-20.07-samples
   pullPolicy: IfNotPresent
   webui: anguda/ant-media:1.0
 
+# Update the NGC Model to use in Deepstream 
 ngcModel:
   #NGC Model Pruned URL from NGC
-  getModel: ngc registry model download-version "nvidia/tao/trafficcamnet:pruned_v1.0.1" 
+  getModel: wget --content-disposition https://api.ngc.nvidia.com/v2/models/nvidia/tlt_trafficcamnet/versions/pruned_v1.0/zip -O tlt_trafficcamnet_pruned_v1.0.zip
   #NGC model name
   name: trafficcamnet
   # Model File Name that will use in Deepstream
   fileName: resnet18_trafficcamnet_pruned.etlt
   # Model Config that needs to update
-  modelConfig: config_infer_primary_trafficcamnet.txt
+  modelConfig: /opt/nvidia/deepstream/deepstream-5.0/samples/configs/tlt_pretrained_models/config_infer_primary_trafficcamnet.txt
   #Do not update the Put Model
-  putModel: /opt/nvidia/deepstream/deepstream-6.1/samples/configs/tao_pretrained_models/
-
-ngcConfig:
-  apikey: ""
-  ngcorg: "nvidian"
-  ngcteam: "no-team"
+  putModel: /opt/nvidia/deepstream/deepstream-5.0/samples/configs/tlt_pretrained_models/
 
 imagePullSecrets:
 - name: nvidia-registrykey-secret
@@ -38,11 +34,12 @@ command:
   apprunnercmd: "python"
   apprunnername: "/opt/nvidia/deepstream/create_config.py"
   appname: "deepstream-app"
-  apparg: "/opt/nvidia/deepstream/deepstream-6.1/samples/configs/deepstream-app/source4_1080p_dec_infer-resnet_tracker_sgie_tiled_display_int8.txt"
+  apparg: "/opt/nvidia/deepstream/deepstream-5.0/samples/configs/deepstream-app/source4_1080p_dec_infer-resnet_tracker_sgie_tiled_display_int8.txt"
 
 service:
   type: NodePort
   port: 80
+  nodePort: 31113
   webuiPort: 5080
   webuinodePort: 31115
 
@@ -51,7 +48,7 @@ service:
 #or rtsp://ip if it has no username and password
 
 cameras:
-  #camera1:
+  #camera1: rtsp://192.168.0.24:8554/live.sdp
 
 ingress:
   enabled: false
@@ -67,25 +64,18 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources:
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  limits:
-    nvidia.com/gpu: 1
+  # limits:
   #   cpu: 100m
   #   memory: 128Mi
-  #requests:
-  #  nvidia.com/gpu: 1
+  # requests:
   #   cpu: 100m
   #   memory: 128Mi
-  
-#gpuType: nvidia.com/gpu
-#numGPUs: 1
-#
-deployment:
-  strategy: Recreate
+
 
 nodeSelector: {}
 

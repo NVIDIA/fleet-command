@@ -1,16 +1,8 @@
 """
-# Copyright (c) 2021 NVIDIA CORPORATION. All rights reserved.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+Author: Vinay Bagde
+Modifier: Anurag Guda
+Maintainer: Andrew Liu, Anurag Guda
+Copyright (c) 2018 NVIDIA Corporation.  All rights reserved.
 """
 import sys
 import os
@@ -90,58 +82,115 @@ def main():
         fp.close()
 
 
-    
+    gpulist = os.popen('nvidia-smi -L').read()
 
-    if len(ips) != 0:
-        for index,ip in enumerate(ips):
-            write_list.append("\n")
-            write_list.append("[source{}]".format(index))
+    print(gpulist)
+
+    if 'T4' in gpulist:
+        if len(ips) != 0:
+            for index,ip in enumerate(ips):
+                write_list.append("\n")
+                write_list.append("[source{}]".format(index))
+                write_list.append("enable=1")
+                write_list.append("type=4")
+                write_list.append("uri={}".format(ip))
+                write_list.append("num-sources=1")
+                write_list.append("gpu-id=0")
+                write_list.append("cudadec-memtype=0")
+                write_list.append("\n")
+
+            write_list.append("[sink0]")
             write_list.append("enable=1")
             write_list.append("type=4")
-            write_list.append("uri={}".format(ip))
-            write_list.append("num-sources=1")
-            write_list.append("gpu-id=0")
-            write_list.append("cudadec-memtype=0")
+            write_list.append("container=1")
+            write_list.append("codec=1")
+            write_list.append("sync=0")
+            write_list.append("bitrate=2000000")
+            write_list.append("profile=0")
+            write_list.append("output-file=out.mp4")
+            write_list.append("source-id=0")
+
+
+        if len(ips) == 0:
             write_list.append("\n")
+            write_list.append("[sink0]")
+            write_list.append("enable=1")
+            write_list.append("type=1")
+            write_list.append("sync=1")
+            write_list.append("codec=1")
+            write_list.append("bitrate=4000000")
+            write_list.append("rtsp-port=8554")
+            write_list.append("udp-port=5400")
+            write_list.append("source-id=0")
+            write_list.append("gpu-id=0")
+            write_list.append("nvbuf-memory-type=0")
+            write_list.append("\n")
+            write_list.append("[sink2]")
+            write_list.append("enable=1")
+            write_list.append("type=4")
+            write_list.append("container=1")
+            write_list.append("codec=1")
+            write_list.append("sync=1")
+            write_list.append("bitrate=2000000")
+            write_list.append("rtsp-port=8554")
+            write_list.append("udp-port=5400")
+            write_list.append("profile=0")
+            write_list.append("output-file=out.mp4")
+            write_list.append("source-id=0")
+    else:
+        if len(ips) != 0:
+            for index,ip in enumerate(ips):
+                write_list.append("\n")
+                write_list.append("[source{}]".format(index))
+                write_list.append("enable=1")
+                write_list.append("type=4")
+                write_list.append("uri={}".format(ip))
+                write_list.append("num-sources=1")
+                write_list.append("gpu-id=0")
+                write_list.append("cudadec-memtype=0")
+                write_list.append("\n")
 
-        write_list.append("[sink0]")
-        write_list.append("enable=1")
-        write_list.append("type=4")
-        write_list.append("container=1")
-        write_list.append("codec=1")
-        write_list.append("sync=0")
-        write_list.append("bitrate=2000000")
-        write_list.append("profile=0")
-        write_list.append("output-file=out.mp4")
-        write_list.append("source-id=0")
+            write_list.append("[sink0]")
+            write_list.append("enable=1")
+            write_list.append("type=4")
+            write_list.append("container=1")
+            write_list.append("codec=1")
+            write_list.append("enc-type=1")
+            write_list.append("sync=0")
+            write_list.append("bitrate=2000000")
+            write_list.append("profile=0")
+            write_list.append("output-file=out.mp4")
+            write_list.append("source-id=0")
 
 
-    if len(ips) == 0:
-        write_list.append("\n")
-        write_list.append("[sink0]")
-        write_list.append("enable=1")
-        write_list.append("type=1")
-        write_list.append("sync=1")
-        write_list.append("codec=1")
-        write_list.append("bitrate=4000000")
-        write_list.append("rtsp-port=8554")
-        write_list.append("udp-port=5400")
-        write_list.append("source-id=0")
-        write_list.append("gpu-id=0")
-        write_list.append("nvbuf-memory-type=0")
-        write_list.append("\n")
-        write_list.append("[sink2]")
-        write_list.append("enable=1")
-        write_list.append("type=4")
-        write_list.append("container=1")
-        write_list.append("codec=1")
-        write_list.append("sync=1")
-        write_list.append("bitrate=2000000")
-        write_list.append("rtsp-port=8554")
-        write_list.append("udp-port=5400")
-        write_list.append("profile=0")
-        write_list.append("output-file=out.mp4")
-        write_list.append("source-id=0")
+        if len(ips) == 0:
+            write_list.append("\n")
+            write_list.append("[sink0]")
+            write_list.append("enable=1")
+            write_list.append("type=1")
+            write_list.append("sync=1")
+            write_list.append("codec=1")
+            write_list.append("enc-type=1")
+            write_list.append("bitrate=4000000")
+            write_list.append("rtsp-port=8554")
+            write_list.append("udp-port=5400")
+            write_list.append("source-id=0")
+            write_list.append("gpu-id=0")
+            write_list.append("nvbuf-memory-type=0")
+            write_list.append("\n")
+            write_list.append("[sink2]")
+            write_list.append("enable=1")
+            write_list.append("type=4")
+            write_list.append("container=1")
+            write_list.append("codec=1")
+            write_list.append("enc-type=1")
+            write_list.append("sync=1")
+            write_list.append("bitrate=2000000")
+            write_list.append("rtsp-port=8554")
+            write_list.append("udp-port=5400")
+            write_list.append("profile=0")
+            write_list.append("output-file=out.mp4")
+            write_list.append("source-id=0")
 
     write_file = os.path.join(os.path.dirname(sys.argv[2]),'run.txt')
     with open(write_file,"w") as file:

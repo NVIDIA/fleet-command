@@ -118,9 +118,9 @@ spec:
         secret:
           secretName: {{ .identitySecret }}
           items:
-          - key: {{ .identity_cert_name }}
+          - key: {{ .identityCert | default "identity_certificate.pem" }}
             path: identity_cert
-          - key: {{ .identity_key_name }}
+          - key: {{ .identityPk | default "identity_key.pem" }}
             path: identity_pk
       {{- end}}
       {{- end}}
@@ -133,9 +133,9 @@ spec:
         secret:
           secretName: {{ .identitySecret }}
           items:
-          - key: {{ .identity_cert_name }}
+          - key: {{ .identityCert | default "identity_certificate.pem" }}
             path: identity_cert
-          - key: {{ .identity_key_name }}
+          - key: {{ .identityPk | default "identity_key.pem" }}
             path: identity_pk
       {{- end}}
       {{- end}}
